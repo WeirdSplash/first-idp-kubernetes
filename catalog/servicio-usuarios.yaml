@@ -1,0 +1,14 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: servicio-usuarios
+  description: Microservicio de gestión de usuarios y autenticación
+  annotations:
+    github.com/project-slug: WeirdSplash/servicio-usuarios
+    backstage.io/techdocs-ref: dir:.
+  tags: [fastapi, python, usuarios, kubernetes]
+spec:
+  type: service
+  lifecycle: production
+  owner: equipo-plataforma
+  system: plataforma-core

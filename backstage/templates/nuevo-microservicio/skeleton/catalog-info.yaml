@@ -1,0 +1,14 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ${{ values.nombre }}
+  description: ${{ values.descripcion }}
+  annotations:
+    github.com/project-slug: ${{ values.repoUrl | parseRepoUrl | pick('owner') }}/${{ values.nombre }}
+    backstage.io/techdocs-ref: dir:.
+  tags: [fastapi, python, kubernetes]
+spec:
+  type: service
+  lifecycle: experimental
+  owner: ${{ values.owner }}
+  system: plataforma-core

@@ -1,0 +1,85 @@
+name: CI — Build & Push
+
+# ──────────────────────────────────────────────────────────────────
+# Golden Path — generado por Backstage IDP
+# Flujo: Test → Build imagen → Push a registry → Actualizar manifiestos
+# ArgoCD detecta el cambio y deploya a Kubernetes automáticamente.
+# ──────────────────────────────────────────────────────────────────
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  IMAGE_NAME: ${{ values.nombre }}
+
+jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - run: pip install -r requirements.txt pytest httpx
+      - run: pytest tests/ -v --tb=short
+
+  build-and-push:
+    name: Build & Push imagen
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      # Opción A — AWS ECR (producción en EKS)
+      - name: Configurar credenciales AWS via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-ecr-push
+          aws-region: us-east-1
+
+      - name: Login a Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build y Push a ECR
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  update-manifests:
+    name: Actualizar manifiestos (GitOps)
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: WeirdSplash/k8s-manifests
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: manifests
+      - name: Actualizar tag en manifiestos
+        run: |
+          cd manifests
+          sed -i "s|image: .*${{ env.IMAGE_NAME }}:.*|image: ${{ env.IMAGE_NAME }}:${{ github.sha }}|g" \
+            apps/${{ env.IMAGE_NAME }}/deployment.yaml
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add .
+          git commit -m "chore: update ${{ env.IMAGE_NAME }} to ${{ github.sha }}"
+          git push
+          # ArgoCD detecta este push y deploya automáticamente 🚀

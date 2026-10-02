@@ -1,0 +1,19 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: servicio-pagos
+  description: Microservicio de procesamiento de pagos
+  annotations:
+    github.com/project-slug: WeirdSplash/servicio-pagos
+    backstage.io/techdocs-ref: dir:.
+  tags: [fastapi, python, pagos, kubernetes]
+  links:
+    - url: https://github.com/WeirdSplash/servicio-pagos
+      title: Repositorio GitHub
+    - url: https://argocd.miempresa.com/applications/servicio-pagos
+      title: Argo CD
+spec:
+  type: service
+  lifecycle: production
+  owner: equipo-pagos
+  system: plataforma-core

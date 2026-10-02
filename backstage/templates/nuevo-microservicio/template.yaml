@@ -1,0 +1,77 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: nuevo-microservicio-fastapi
+  title: Nuevo Microservicio FastAPI
+  description: |
+    Golden Path para crear un microservicio FastAPI listo para producción.
+    Crea el repo, configura CI/CD con GitHub Actions, y registra el
+    servicio en el catálogo automáticamente.
+  tags: [fastapi, python, kubernetes, golden-path]
+spec:
+  owner: equipo-plataforma
+  type: service
+  parameters:
+    - title: Información del servicio
+      required: [nombre, descripcion, owner]
+      properties:
+        nombre:
+          title: Nombre del servicio
+          type: string
+          description: En kebab-case (ej. servicio-notificaciones)
+          pattern: '^[a-z][a-z0-9-]*$'
+        descripcion:
+          title: Descripción
+          type: string
+        owner:
+          title: Equipo dueño
+          type: string
+          ui:field: OwnerPicker
+          ui:options:
+            allowedKinds: [Group]
+        puerto:
+          title: Puerto de la aplicación
+          type: integer
+          default: 8000
+    - title: Repositorio GitHub
+      required: [repoUrl]
+      properties:
+        repoUrl:
+          title: Ubicación del repositorio
+          type: string
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts: [github.com]
+  steps:
+    - id: fetch-template
+      name: Generar código base
+      action: fetch:template
+      input:
+        url: ./skeleton
+        values:
+          nombre: ${{ parameters.nombre }}
+          descripcion: ${{ parameters.descripcion }}
+          owner: ${{ parameters.owner }}
+          puerto: ${{ parameters.puerto }}
+    - id: crear-repo
+      name: Crear repositorio en GitHub
+      action: publish:github
+      input:
+        allowedHosts: [github.com]
+        description: ${{ parameters.descripcion }}
+        repoUrl: ${{ parameters.repoUrl }}
+        defaultBranch: main
+        topics: [fastapi, python, kubernetes, microservicio]
+    - id: registrar-catalogo
+      name: Registrar en el catálogo
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps['crear-repo'].output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+  output:
+    links:
+      - title: Repositorio GitHub
+        url: ${{ steps['crear-repo'].output.remoteUrl }}
+      - title: Ver en el catálogo
+        icon: catalog
+        entityRef: ${{ steps['registrar-catalogo'].output.entityRef }}

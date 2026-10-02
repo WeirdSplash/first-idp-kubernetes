@@ -1,0 +1,50 @@
+app:
+  title: Internal Developer Portal — Demo
+  baseUrl: http://localhost:3000
+
+organization:
+  name: Mi Empresa
+
+backend:
+  baseUrl: http://localhost:7007
+  listen:
+    port: 7007
+  database:
+    client: pg
+    connection:
+      host: ${POSTGRES_HOST}
+      port: ${POSTGRES_PORT}
+      user: ${POSTGRES_USER}
+      password: ${POSTGRES_PASSWORD}
+
+catalog:
+  rules:
+    - allow: [Component, System, API, Resource, Location, Template]
+  locations:
+    - type: file
+      target: ../catalog/all-components.yaml
+    # En producción apuntar a tu GitHub org:
+    # - type: github-discovery
+    #   target: https://github.com/tu-org
+
+integrations:
+  github:
+    - host: github.com
+      token: ${GITHUB_TOKEN}
+
+scaffolder:
+  defaultAuthor:
+    name: Platform Team
+    email: platform@miempresa.com
+  defaultCommitMessage: "feat: scaffold from Backstage IDP"
+
+auth:
+  environment: development
+  providers: {}
+
+techdocs:
+  builder: local
+  generator:
+    runIn: local
+  publisher:
+    type: local

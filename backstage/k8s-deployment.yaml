@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backstage
+  namespace: backstage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backstage
+  template:
+    metadata:
+      labels:
+        app: backstage
+    spec:
+      serviceAccountName: backstage
+      containers:
+        - name: backstage
+          image: backstage/backstage:latest
+          ports:
+            - containerPort: 7007
+          env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: backstage-secrets
+                  key: github-token
+            - name: POSTGRES_HOST
+              value: backstage-postgres.backstage.svc.cluster.local
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: backstage-secrets
+                  key: postgres-user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backstage-secrets
+                  key: postgres-password
+          volumeMounts:
+            - name: app-config
+              mountPath: /app/app-config.production.yaml
+              subPath: app-config.yaml
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 7007
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+      volumes:
+        - name: app-config
+          configMap:
+            name: backstage-config
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: backstage
+  namespace: backstage
+  annotations:
+    # IRSA — en EKS, el pod asume este role sin access keys
+    eks.amazonaws.com/role-arn: arn:aws:iam::<cuenta>:role/backstage-eks-role
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backstage
+  namespace: backstage
+spec:
+  selector:
+    app: backstage
+  ports:
+    - port: 80
+      targetPort: 7007

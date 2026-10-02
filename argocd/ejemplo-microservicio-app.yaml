@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mi-microservicio
+  namespace: argocd
+spec:
+  project: default
+  source:
+    # Este repo es generado automáticamente por el Software Template de Backstage
+    repoURL: https://github.com/WeirdSplash/mi-microservicio
+    targetRevision: main
+    path: k8s
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: mi-microservicio
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

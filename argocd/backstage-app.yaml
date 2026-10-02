@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: backstage
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    # GitOps puro — si no está en Git, no existe en el clúster
+    repoURL: https://github.com/WeirdSplash/first-idp-kubernetes
+    targetRevision: main
+    path: backstage
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: backstage
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

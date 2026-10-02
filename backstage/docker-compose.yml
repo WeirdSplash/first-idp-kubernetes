@@ -1,0 +1,40 @@
+version: '3.8'
+
+# Stack LOCAL — para probar Backstage sin necesitar EKS/Kind
+# Para producción en Kubernetes, ver /backstage/k8s-deployment.yaml
+
+services:
+  backstage:
+    image: backstage/backstage:latest
+    ports:
+      - '3000:7007'
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - APP_CONFIG_app_baseUrl=http://localhost:3000
+      - APP_CONFIG_backend_baseUrl=http://localhost:7007
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=backstage
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-backstage}
+    volumes:
+      - ./app-config.yaml:/app/app-config.yaml:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: backstage
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-backstage}
+      POSTGRES_DB: backstage
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U backstage']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

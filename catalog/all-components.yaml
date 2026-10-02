@@ -1,0 +1,10 @@
+apiVersion: backstage.io/v1alpha1
+kind: Location
+metadata:
+  name: all-components
+  description: Registro central de todos los componentes
+spec:
+  targets:
+    - ./servicio-pagos.yaml
+    - ./servicio-usuarios.yaml
+    - ../backstage/templates/nuevo-microservicio/template.yaml

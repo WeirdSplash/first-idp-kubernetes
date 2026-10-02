@@ -1,0 +1,42 @@
+name: Validar manifiestos
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validar YAML del catálogo de Backstage
+        run: |
+          pip install pyyaml
+          python -c "
+          import yaml, glob, sys
+          errors = []
+          for f in glob.glob('catalog/**/*.yaml', recursive=True):
+              try:
+                  yaml.safe_load(open(f))
+                  print(f'✅ {f}')
+              except Exception as e:
+                  errors.append(f'❌ {f}: {e}')
+          if errors:
+              print('\n'.join(errors))
+              sys.exit(1)
+          "
+
+      - name: Validar YAML de ArgoCD
+        run: |
+          python -c "
+          import yaml, glob, sys
+          for f in glob.glob('argocd/**/*.yaml', recursive=True):
+              try:
+                  yaml.safe_load(open(f))
+                  print(f'✅ {f}')
+              except Exception as e:
+                  print(f'❌ {f}: {e}')
+                  sys.exit(1)
+          "
